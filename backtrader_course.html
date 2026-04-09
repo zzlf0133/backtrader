@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backtrader 系统学习课程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400;500&family=Noto+Serif+SC:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #161b22;
+    --border: #21262d;
+    --border-glow: #30363d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --text-dim: #484f58;
+    --accent: #d4a017;
+    --accent-dim: #a07810;
+    --accent-glow: rgba(212,160,23,0.12);
+    --green: #2ea043;
+    --green-glow: rgba(46,160,67,0.15);
+    --red: #da3633;
+    --blue: #388bfd;
+    --blue-glow: rgba(56,139,253,0.12);
+    --purple: #a371f7;
+
+    --phase-1: #d4a017;
+    --phase-2: #388bfd;
+    --phase-3: #2ea043;
+    --phase-4: #a371f7;
+    --phase-5: #f78166;
+    --phase-6: #39d353;
+    --phase-7: #58a6ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif SC', serif;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Ambient light effect */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -40%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80vw;
+    height: 60vh;
+    background: radial-gradient(ellipse at center, rgba(212,160,23,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────── */
+  header {
+    position: relative;
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(17,20,24,0.98) 0%, rgba(10,12,15,0.95) 100%);
+    backdrop-filter: blur(20px);
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 40px 50px;
+  }
+
+  .header-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-eyebrow::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .header-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-top: 16px;
+    max-width: 520px;
+  }
+
+  /* ─── STATS BAR ──────────────────────────────────── */
+  .stats-bar {
+    display: flex;
+    gap: 0;
+    margin-top: 48px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 640px;
+  }
+
+  .stat {
+    flex: 1;
+    padding: 20px 24px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    transition: background 0.2s;
+  }
+
+  .stat:last-child { border-right: none; }
+  .stat:hover { background: var(--surface2); }
+
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    text-transform: uppercase;
+  }
+
+  /* ─── LEARNING PATH ──────────────────────────────── */
+  .path-section {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 64px 40px 48px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: #8b949e;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .path-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+
+  .path-flow::-webkit-scrollbar { display: none; }
+
+  .path-node {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .path-node:hover { transform: translateY(-3px); }
+
+  .path-node-bubble {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    position: relative;
+    border: 2px solid;
+    transition: box-shadow 0.3s;
+  }
+
+  .path-node:hover .path-node-bubble {
+    box-shadow: 0 0 28px currentColor;
+  }
+
+  .path-node-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: #8b949e;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.5;
+  }
+
+  .path-arrow {
+    flex-shrink: 0;
+    width: 56px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 42px;
+  }
+
+  .path-arrow svg {
+    width: 100%;
+    color: var(--border-glow);
+  }
+
+  /* Phase colors for nodes */
+  .node-p1 { color: var(--phase-1); border-color: var(--phase-1); background: rgba(212,160,23,0.08); }
+  .node-p2 { color: var(--phase-2); border-color: var(--phase-2); background: rgba(56,139,253,0.08); }
+  .node-p3 { color: var(--phase-3); border-color: var(--phase-3); background: rgba(46,160,67,0.08); }
+  .node-p4 { color: var(--phase-4); border-color: var(--phase-4); background: rgba(163,113,247,0.08); }
+  .node-p5 { color: var(--phase-5); border-color: var(--phase-5); background: rgba(247,129,102,0.08); }
+  .node-p6 { color: var(--phase-6); border-color: var(--phase-6); background: rgba(57,211,83,0.08); }
+  .node-p7 { color: var(--phase-7); border-color: var(--phase-7); background: rgba(88,166,255,0.08); }
+
+  /* ─── MAIN CONTENT ───────────────────────────────── */
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px 100px;
+  }
+
+  /* ─── PHASE BLOCK ────────────────────────────────── */
+  .phase {
+    margin-bottom: 64px;
+  }
+
+  .phase-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .phase-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 80px;
+    height: 1px;
+  }
+
+  .phase-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .phase-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .phase-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #8b949e;
+    letter-spacing: 0.06em;
+    margin-left: auto;
+  }
+
+  /* ─── LESSON CARD ────────────────────────────────── */
+  .lesson {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  .lesson:hover {
+    border-color: var(--border-glow);
+  }
+
+  .lesson.open {
+    border-color: var(--border-glow);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  .lesson-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .lesson-header:hover {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .lesson-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+
+  .lesson-meta {
+    flex: 1;
+  }
+
+  .lesson-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .lesson-phase-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: #6e7681;
+    margin-top: 3px;
+    text-transform: uppercase;
+  }
+
+  .lesson-toggle {
+    color: var(--text-dim);
+    transition: transform 0.3s, color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .lesson.open .lesson-toggle {
+    transform: rotate(180deg);
+    color: var(--accent);
+  }
+
+  /* ─── LESSON BODY ────────────────────────────────── */
+  .lesson-body {
+    display: none;
+    padding: 0 24px 28px;
+    border-top: 1px solid var(--border);
+    animation: slideIn 0.25s ease;
+  }
+
+  .lesson.open .lesson-body {
+    display: block;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lesson-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 700px) {
+    .lesson-grid { grid-template-columns: 1fr; }
+    .path-flow { gap: 0; }
+    main, .path-section, .header-inner { padding-left: 20px; padding-right: 20px; }
+    .stats-bar { flex-direction: column; }
+    .stat { border-right: none; border-bottom: 1px solid var(--border); }
+    .stat:last-child { border-bottom: none; }
+  }
+
+  /* KEY POINTS */
+  .keypoints {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid;
+    border-radius: 0 6px 6px 0;
+    padding: 18px 20px;
+  }
+
+  .keypoints-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .keypoints-title::before {
+    content: '★';
+    font-size: 11px;
+  }
+
+  .keypoints ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .keypoints li {
+    font-size: 13.5px;
+    color: #c9d1d9;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .keypoints li::before {
+    content: '›';
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 14px;
+  }
+
+  .keypoints code,
+  .hw-box code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.16);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #e2c97e;
+  }
+
+  /* HOMEWORK */
+  .hw-box {
+    background: rgba(46,160,67,0.05);
+    border: 1px solid rgba(46,160,67,0.2);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+
+  .hw-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hw-title::before {
+    content: '▶';
+    font-size: 8px;
+  }
+
+  .hw-text {
+    font-size: 13.5px;
+    color: #c9d1d9;
+    line-height: 1.75;
+  }
+
+  /* ─── PHASE ACCENT COLORS ─────────────────────────── */
+  /* Applied dynamically via data attributes */
+  [data-phase="1"] .phase-num { background: rgba(212,160,23,0.12); color: var(--phase-1); }
+  [data-phase="1"] .phase-header::after { background: var(--phase-1); }
+  [data-phase="1"] .lesson-num { background: rgba(212,160,23,0.12); color: var(--phase-1); }
+  [data-phase="1"] .keypoints { border-left-color: var(--phase-1); }
+  [data-phase="1"] .keypoints-title { color: var(--phase-1); }
+  [data-phase="1"] .keypoints li::before { color: var(--phase-1); }
+
+  [data-phase="2"] .phase-num { background: rgba(56,139,253,0.12); color: var(--phase-2); }
+  [data-phase="2"] .phase-header::after { background: var(--phase-2); }
+  [data-phase="2"] .lesson-num { background: rgba(56,139,253,0.12); color: var(--phase-2); }
+  [data-phase="2"] .keypoints { border-left-color: var(--phase-2); }
+  [data-phase="2"] .keypoints-title { color: var(--phase-2); }
+  [data-phase="2"] .keypoints li::before { color: var(--phase-2); }
+
+  [data-phase="3"] .phase-num { background: rgba(46,160,67,0.12); color: var(--phase-3); }
+  [data-phase="3"] .phase-header::after { background: var(--phase-3); }
+  [data-phase="3"] .lesson-num { background: rgba(46,160,67,0.12); color: var(--phase-3); }
+  [data-phase="3"] .keypoints { border-left-color: var(--phase-3); }
+  [data-phase="3"] .keypoints-title { color: var(--phase-3); }
+  [data-phase="3"] .keypoints li::before { color: var(--phase-3); }
+
+  [data-phase="4"] .phase-num { background: rgba(163,113,247,0.12); color: var(--phase-4); }
+  [data-phase="4"] .phase-header::after { background: var(--phase-4); }
+  [data-phase="4"] .lesson-num { background: rgba(163,113,247,0.12); color: var(--phase-4); }
+  [data-phase="4"] .keypoints { border-left-color: var(--phase-4); }
+  [data-phase="4"] .keypoints-title { color: var(--phase-4); }
+  [data-phase="4"] .keypoints li::before { color: var(--phase-4); }
+
+  [data-phase="5"] .phase-num { background: rgba(247,129,102,0.12); color: var(--phase-5); }
+  [data-phase="5"] .phase-header::after { background: var(--phase-5); }
+  [data-phase="5"] .lesson-num { background: rgba(247,129,102,0.12); color: var(--phase-5); }
+  [data-phase="5"] .keypoints { border-left-color: var(--phase-5); }
+  [data-phase="5"] .keypoints-title { color: var(--phase-5); }
+  [data-phase="5"] .keypoints li::before { color: var(--phase-5); }
+
+  [data-phase="6"] .phase-num { background: rgba(57,211,83,0.12); color: var(--phase-6); }
+  [data-phase="6"] .phase-header::after { background: var(--phase-6); }
+  [data-phase="6"] .lesson-num { background: rgba(57,211,83,0.12); color: var(--phase-6); }
+  [data-phase="6"] .keypoints { border-left-color: var(--phase-6); }
+  [data-phase="6"] .keypoints-title { color: var(--phase-6); }
+  [data-phase="6"] .keypoints li::before { color: var(--phase-6); }
+
+  [data-phase="7"] .phase-num { background: rgba(88,166,255,0.12); color: var(--phase-7); }
+  [data-phase="7"] .phase-header::after { background: var(--phase-7); }
+  [data-phase="7"] .lesson-num { background: rgba(88,166,255,0.12); color: var(--phase-7); }
+  [data-phase="7"] .keypoints { border-left-color: var(--phase-7); }
+  [data-phase="7"] .keypoints-title { color: var(--phase-7); }
+  [data-phase="7"] .keypoints li::before { color: var(--phase-7); }
+
+  /* ─── FOOTER ──────────────────────────────────────── */
+  footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--border);
+    padding: 32px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .footer-note {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── PROGRESS BAR ──────────────────────────────── */
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--blue));
+    z-index: 1000;
+    transition: width 0.1s;
+    width: 0%;
+  }
+
+  /* ─── STICKY NAV ─────────────────────────────────── */
+  .sticky-nav {
+    position: fixed;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+  }
+
+  .nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-glow);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .nav-dot.active {
+    background: var(--accent);
+    transform: scale(1.5);
+  }
+
+  .nav-dot:hover {
+    background: var(--text-muted);
+    transform: scale(1.3);
+  }
+
+  .nav-dot::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .nav-dot:hover::after { opacity: 1; }
+
+  @media (max-width: 900px) { .sticky-nav { display: none; } }
+
+  /* Load animations */
+  .phase {
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.5s ease forwards;
+  }
+  .phase:nth-child(1) { animation-delay: 0.05s; }
+  .phase:nth-child(2) { animation-delay: 0.1s; }
+  .phase:nth-child(3) { animation-delay: 0.15s; }
+  .phase:nth-child(4) { animation-delay: 0.2s; }
+  .phase:nth-child(5) { animation-delay: 0.25s; }
+  .phase:nth-child(6) { animation-delay: 0.3s; }
+  .phase:nth-child(7) { animation-delay: 0.35s; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .header-inner > * {
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+  .header-inner > *:nth-child(1) { animation-delay: 0s; }
+  .header-inner > *:nth-child(2) { animation-delay: 0.08s; }
+  .header-inner > *:nth-child(3) { animation-delay: 0.14s; }
+  .header-inner > *:nth-child(4) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<nav class="sticky-nav" id="stickyNav"></nav>
+
+<header>
+  <div class="header-inner">
+    <div class="header-eyebrow">量化交易课程体系</div>
+    <h1>Backtrader<br><em>系统学习</em>课程</h1>
+    <p class="header-subtitle">从 pandas 基础出发，完整掌握 Python 量化回测引擎的核心架构与工程实践</p>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-num">7</div>
+        <div class="stat-label">学习阶段</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">20</div>
+        <div class="stat-label">课程节数</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">60<span style="font-size:18px;color:var(--text-muted)">–80h</span></div>
+        <div class="stat-label">预计学时</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LEARNING PATH -->
+<section class="path-section">
+  <div class="section-label">学习路径总览</div>
+  <div class="path-flow">
+
+    <div class="path-node" onclick="scrollToPhase(1)">
+      <div class="path-node-bubble node-p1">Ⅰ</div>
+      <div class="path-node-label">Python<br>进阶基础</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(2)">
+      <div class="path-node-bubble node-p2">Ⅱ</div>
+      <div class="path-node-label">核心<br>架构</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(3)">
+      <div class="path-node-bubble node-p3">Ⅲ</div>
+      <div class="path-node-label">交易<br>机制</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(4)">
+      <div class="path-node-bubble node-p4">Ⅳ</div>
+      <div class="path-node-label">指标<br>系统</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(5)">
+      <div class="path-node-bubble node-p5">Ⅴ</div>
+      <div class="path-node-label">分析<br>评估</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(6)">
+      <div class="path-node-bubble node-p6">Ⅵ</div>
+      <div class="path-node-label">高级<br>功能</div>
+    </div>
+    <div class="path-arrow">
+      <svg viewBox="0 0 40 20" fill="none"><path d="M0 10 H32 M28 5 L38 10 L28 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="path-node" onclick="scrollToPhase(7)">
+      <div class="path-node-bubble node-p7">Ⅶ</div>
+      <div class="path-node-label">工程化<br>实践</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── MAIN CONTENT ─── -->
+<main>
+
+  <!-- PHASE 1 -->
+  <div class="phase" data-phase="1" id="phase-1">
+    <div class="phase-header">
+      <span class="phase-num">第一阶段</span>
+      <span class="phase-title">Python 进阶基础</span>
+      <span class="phase-count">2 节课 · 为 Backtrader 铺路</span>
+    </div>
+
+    <div class="lesson" id="lesson-1">
+      <div class="lesson-header" onclick="toggleLesson('lesson-1')">
+        <div class="lesson-num">01</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">面向对象编程核心</div>
+          <div class="lesson-phase-tag">第一阶段 · Python 进阶基础</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>类的定义与继承</li>
+              <li><code>self</code> 的含义与作用域</li>
+              <li><code>__init__</code> 构造方法</li>
+              <li>类属性 vs 实例属性</li>
+              <li>方法重写（override）</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">创建一个 <code>Stock</code> 类，属性包含 <code>name</code>/<code>price</code>/<code>volume</code>，方法包含 <code>is_rising(prev_price)</code> 判断涨跌。再创建 <code>ETF</code> 继承 <code>Stock</code>，添加 <code>tracking_error</code> 属性。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-2">
+      <div class="lesson-header" onclick="toggleLesson('lesson-2')">
+        <div class="lesson-num">02</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Python 元类与描述符（Backtrader 底层基础）</div>
+          <div class="lesson-phase-tag">第一阶段 · Python 进阶基础</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>__class__</code> 和 <code>type</code> 的关系</li>
+              <li>理解"类也是对象"</li>
+              <li>简单元类：<code>__new__</code>、<code>__init_subclass__</code></li>
+              <li>描述符协议：<code>__get__</code>、<code>__set__</code></li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">写一个元类 <code>AutoParams</code>，使得任何继承它的类都能自动将类级别的 <code>params = dict(period=14)</code> 合并到实例的 <code>self.p</code> 上。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 2 -->
+  <div class="phase" data-phase="2" id="phase-2">
+    <div class="phase-header">
+      <span class="phase-num">第二阶段</span>
+      <span class="phase-title">Backtrader 核心架构</span>
+      <span class="phase-count">4 节课 · 引擎骨架</span>
+    </div>
+
+    <div class="lesson" id="lesson-3">
+      <div class="lesson-header" onclick="toggleLesson('lesson-3')">
+        <div class="lesson-num">03</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Lines 系统 ——Backtrader 的灵魂</div>
+          <div class="lesson-phase-tag">第二阶段 · 核心架构</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>什么是 Line（命名数据序列）</li>
+              <li><code>line[0]</code>=当前bar，<code>line[-1]</code>=上一bar</li>
+              <li>Line 的 <code>forward()</code> / <code>home()</code> 机制</li>
+              <li><code>linebuffer.py</code> 的循环缓冲区原理</li>
+              <li><code>LineRoot → LineSingle → LineBuffer</code> 继承链</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">阅读 <code>backtrader/linebuffer.py</code>，手写一个简化版 <code>CircularBuffer(size)</code> 类，支持 <code>append(val)</code> 和通过整数索引访问历史值（0=最新，-1=上一个）。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-4">
+      <div class="lesson-header" onclick="toggleLesson('lesson-4')">
+        <div class="lesson-num">04</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Cerebro ——回测引擎的指挥中心</div>
+          <div class="lesson-phase-tag">第二阶段 · 核心架构</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>Cerebro</code> 的职责：协调数据/策略/Broker</li>
+              <li>核心方法：<code>adddata()</code>、<code>addstrategy()</code>、<code>run()</code>、<code>plot()</code></li>
+              <li><code>run()</code> 内部循环：<code>_runonce</code> vs <code>_runnext</code></li>
+              <li>回测结果返回格式</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">用最简单的方式跑通一次回测：加载 CSV 文件，写一个空策略（只打印当前日期和收盘价），运行并输出最后一天的价格。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-5">
+      <div class="lesson-header" onclick="toggleLesson('lesson-5')">
+        <div class="lesson-num">05</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">DataFeeds ——数据进入引擎的方式</div>
+          <div class="lesson-phase-tag">第二阶段 · 核心架构</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>GenericCSVData</code> 加载自定义 CSV</li>
+              <li><code>PandasData</code> 将 DataFrame 转换为数据源</li>
+              <li>6 条默认 Lines：<code>open/high/low/close/volume/openinterest</code></li>
+              <li><code>datetime</code> Line 的特殊性</li>
+              <li><code>fromdate</code> / <code>todate</code> 过滤</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">用 pandas 从 CSV 读取股票数据，分别用 <code>GenericCSVData</code> 和 <code>PandasData</code> 两种方式加载到 Cerebro，验证两者数据一致性。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-6">
+      <div class="lesson-header" onclick="toggleLesson('lesson-6')">
+        <div class="lesson-num">06</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Strategy ——策略的骨架</div>
+          <div class="lesson-phase-tag">第二阶段 · 核心架构</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>__init__</code> 只初始化指标，不做逻辑判断</li>
+              <li><code>next()</code> 是每根 bar 的主逻辑</li>
+              <li><code>prenext()</code> 的触发条件（minperiod 未满足）</li>
+              <li><code>notify_order()</code> 订单回调</li>
+              <li><code>notify_trade()</code> 交易回调</li>
+              <li><code>self.data</code>、<code>self.data0</code>、<code>self.data1</code> 的区别</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">写一个策略：当收盘价连续 3 天上涨时打印"上涨信号"，连续 3 天下跌时打印"下跌信号"。不下单，只观察数据流动。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3 -->
+  <div class="phase" data-phase="3" id="phase-3">
+    <div class="phase-header">
+      <span class="phase-num">第三阶段</span>
+      <span class="phase-title">交易核心机制</span>
+      <span class="phase-count">3 节课 · 订单·手续费·仓位</span>
+    </div>
+
+    <div class="lesson" id="lesson-7">
+      <div class="lesson-header" onclick="toggleLesson('lesson-7')">
+        <div class="lesson-num">07</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Broker 与订单系统</div>
+          <div class="lesson-phase-tag">第三阶段 · 交易核心机制</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>self.buy()</code> / <code>self.sell()</code> / <code>self.close()</code> 参数含义</li>
+              <li>订单类型：Market / Limit / Stop / StopLimit</li>
+              <li>状态流转：Created → Submitted → Accepted → Completed</li>
+              <li>OCO 订单、Bracket 订单（止盈止损同时挂单）</li>
+              <li>在 <code>notify_order()</code> 中通过 <code>order.status</code> 判断状态</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">实现均线策略：金叉买入（市价单），死叉卖出；在 <code>notify_order</code> 中打印成交价和手续费；对比 Limit 单和 Market 单的成交差异。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-8">
+      <div class="lesson-header" onclick="toggleLesson('lesson-8')">
+        <div class="lesson-num">08</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">CommInfo ——手续费与保证金</div>
+          <div class="lesson-phase-tag">第三阶段 · 交易核心机制</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>COMM_PERC</code>（按比例）vs <code>COMM_FIXED</code>（固定费用）</li>
+              <li><code>stocklike=True</code>（股票）vs <code>False</code>（期货）</li>
+              <li><code>mult</code>（合约乘数）的作用</li>
+              <li><code>margin</code>（保证金）的含义</li>
+              <li><code>cerebro.broker.setcommission()</code> 的使用</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">分别模拟：A股（0.03% 手续费 + 印花税 0.1% 单边）和股指期货（合约乘数 300，保证金 15%）两种场景，比较同一策略的净收益差异。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-9">
+      <div class="lesson-header" onclick="toggleLesson('lesson-9')">
+        <div class="lesson-num">09</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Sizer ——仓位管理</div>
+          <div class="lesson-phase-tag">第三阶段 · 交易核心机制</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>FixedSize</code>（固定手数）</li>
+              <li><code>PercentSizer</code>（按资金比例）</li>
+              <li>自定义 Sizer：继承 <code>bt.Sizer</code>，实现 <code>_getsizing()</code></li>
+              <li><code>comminfo</code>、<code>cash</code>、<code>data</code>、<code>isbuy</code> 四个参数的含义</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">写一个 <code>KellySizer</code>：根据策略历史胜率和赔率（可硬编码初始值），用 Kelly 公式计算仓位比例。绑定到策略并运行。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 4 -->
+  <div class="phase" data-phase="4" id="phase-4">
+    <div class="phase-header">
+      <span class="phase-num">第四阶段</span>
+      <span class="phase-title">指标系统</span>
+      <span class="phase-count">2 节课 · 内置与自定义</span>
+    </div>
+
+    <div class="lesson" id="lesson-10">
+      <div class="lesson-header" onclick="toggleLesson('lesson-10')">
+        <div class="lesson-num">10</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">内置指标库</div>
+          <div class="lesson-phase-tag">第四阶段 · 指标系统</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>趋势类：SMA、EMA、DEMA、TEMA、WMA</li>
+              <li>震荡类：RSI、MACD、Stochastic</li>
+              <li>波动类：ATR、BollingerBands</li>
+              <li>辅助类：CrossOver、Highest、Lowest</li>
+              <li><code>minperiod</code> 的意义和计算规则</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">实现 MACD + RSI 过滤策略：MACD 金叉且 RSI &lt; 70 时买入，MACD 死叉或 RSI &gt; 80 时卖出。用 <code>cerebro.plot()</code> 查看指标图形。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-11">
+      <div class="lesson-header" onclick="toggleLesson('lesson-11')">
+        <div class="lesson-num">11</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">自定义指标</div>
+          <div class="lesson-phase-tag">第四阶段 · 指标系统</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>继承 <code>bt.Indicator</code>，定义输出 <code>lines</code></li>
+              <li>在 <code>__init__</code> 中用现有指标组合（推荐方式）</li>
+              <li>在 <code>next()</code> 中手动计算（备选方式）</li>
+              <li><code>plotinfo</code> 和 <code>plotlines</code> 控制图形显示</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">实现两个自定义指标：① <code>ZScore</code>——收盘价相对于 N 日均值的标准差倍数；② <code>PriceChannel</code>——N 日最高/最低价通道，附带中线。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 5 -->
+  <div class="phase" data-phase="5" id="phase-5">
+    <div class="phase-header">
+      <span class="phase-num">第五阶段</span>
+      <span class="phase-title">分析与评估</span>
+      <span class="phase-count">2 节课 · 绩效度量</span>
+    </div>
+
+    <div class="lesson" id="lesson-12">
+      <div class="lesson-header" onclick="toggleLesson('lesson-12')">
+        <div class="lesson-num">12</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Analyzers ——策略绩效评估</div>
+          <div class="lesson-phase-tag">第五阶段 · 分析与评估</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>TradeAnalyzer</code>：胜率、盈亏比、平均持仓周期</li>
+              <li><code>SharpeRatio</code>：夏普比率</li>
+              <li><code>DrawDown</code>：最大回撤</li>
+              <li><code>AnnualReturn</code>：年化收益</li>
+              <li><code>SQN</code>：系统质量数（&gt;1.6 合格，&gt;4 优秀）</li>
+              <li><code>results[0].analyzers.xxx.get_analysis()</code> 提取结果</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">对之前策略添加完整分析：输出年化收益、最大回撤、夏普比率、胜率、盈亏比。将结果格式化为一份简短的"策略评估报告"。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-13">
+      <div class="lesson-header" onclick="toggleLesson('lesson-13')">
+        <div class="lesson-num">13</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Observers ——实时跟踪与绘图</div>
+          <div class="lesson-phase-tag">第五阶段 · 分析与评估</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>内置 Observer：<code>Broker</code>（资金曲线）、<code>BuySell</code>（买卖点）、<code>Trades</code></li>
+              <li><code>DrawDown</code>、<code>LogReturns</code> Observer</li>
+              <li>自定义 Observer：继承 <code>bt.Observer</code>，定义 lines</li>
+              <li>Observer vs Analyzer 的本质区别（逐 bar vs 汇总）</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">写一个自定义 Observer <code>PositionSize</code>，每根 bar 记录当前持仓量。在最终图形中显示仓位变化曲线。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 6 -->
+  <div class="phase" data-phase="6" id="phase-6">
+    <div class="phase-header">
+      <span class="phase-num">第六阶段</span>
+      <span class="phase-title">高级功能</span>
+      <span class="phase-count">4 节课 · 优化·多数据·时序</span>
+    </div>
+
+    <div class="lesson" id="lesson-14">
+      <div class="lesson-header" onclick="toggleLesson('lesson-14')">
+        <div class="lesson-num">14</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">参数优化</div>
+          <div class="lesson-phase-tag">第六阶段 · 高级功能</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>cerebro.optstrategy()</code> vs <code>addstrategy()</code></li>
+              <li>参数网格搜索</li>
+              <li><code>optdatas=True</code> / <code>optreturn=True</code> 性能优化</li>
+              <li>多进程优化（<code>maxcpus</code> 参数）</li>
+              <li>防止过拟合：样本外测试、参数稳健性检验</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">对均线策略优化 <code>fast_period(5~30)</code>、<code>slow_period(20~60)</code> 两个参数，找出夏普比率最高的组合。用 matplotlib/seaborn 绘制参数热力图。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-15">
+      <div class="lesson-header" onclick="toggleLesson('lesson-15')">
+        <div class="lesson-num">15</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">多数据与多时间框架</div>
+          <div class="lesson-phase-tag">第六阶段 · 高级功能</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>同时加载多只股票（多次 <code>cerebro.adddata()</code>）</li>
+              <li>用 <code>ResamplerFilter</code> 将日线重采样为周线</li>
+              <li><code>bt.ind.XXX(self.data1)</code> 指定指标作用于哪个数据</li>
+              <li>多时间框架同步问题（higher timeframe bar 对齐）</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">实现一个多股票轮动策略：每月底（用 Timer）对 5 只股票按动量排序，买入前 2 名，卖出排名后 2 名的持仓。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-16">
+      <div class="lesson-header" onclick="toggleLesson('lesson-16')">
+        <div class="lesson-num">16</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Filters ——数据变换</div>
+          <div class="lesson-phase-tag">第六阶段 · 高级功能</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>HeikinAshi</code> 过滤器（平滑 K 线）</li>
+              <li><code>Renko</code> 砖图</li>
+              <li><code>SessionFilter</code> 过滤非交易时段</li>
+              <li><code>DataFiller</code> 填充缺失 bar</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">将日线数据分别转换为 Heikin-Ashi 和普通 K 线，在同一策略框架下运行相同逻辑，比较两者的交易次数和收益差异。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-17">
+      <div class="lesson-header" onclick="toggleLesson('lesson-17')">
+        <div class="lesson-num">17</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">Cheat-on-Open 与定时器</div>
+          <div class="lesson-phase-tag">第六阶段 · 高级功能</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>cheat_on_open=True</code> 的使用场景</li>
+              <li><code>next_open()</code> 与 <code>next()</code> 的执行顺序</li>
+              <li><code>cerebro.add_timer()</code> 按时间触发回调</li>
+              <li>避免未来数据偷看（look-ahead bias）</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">实现"开盘竞价"模拟：根据前一日收盘时的信号，在第二天开盘时用 <code>next_open()</code> 以开盘价下单，并验证不存在数据偷看。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 7 -->
+  <div class="phase" data-phase="7" id="phase-7">
+    <div class="phase-header">
+      <span class="phase-num">第七阶段</span>
+      <span class="phase-title">工程化实践</span>
+      <span class="phase-count">3 节课 · 导出·封装·实盘</span>
+    </div>
+
+    <div class="lesson" id="lesson-18">
+      <div class="lesson-header" onclick="toggleLesson('lesson-18')">
+        <div class="lesson-num">18</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">WriterFile 与结果导出</div>
+          <div class="lesson-phase-tag">第七阶段 · 工程化实践</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>cerebro.addwriter(bt.WriterFile, csv=True)</code> 导出交易记录</li>
+              <li>手动将 Analyzer 结果整理为 DataFrame</li>
+              <li>用 pandas 分析历史交易明细</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">将完整回测的交易记录导出为 CSV，用 pandas 分析：按月统计盈亏、胜率变化趋势、最长连亏序列。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-19">
+      <div class="lesson-header" onclick="toggleLesson('lesson-19')">
+        <div class="lesson-num">19</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">构建自己的回测框架</div>
+          <div class="lesson-phase-tag">第七阶段 · 工程化实践</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li>封装 <code>run_backtest(strategy_class, data_path, params)</code> 函数</li>
+              <li>标准化绩效指标输出</li>
+              <li>批量回测多策略、多标的</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">封装一个 <code>BacktestRunner</code> 类，支持传入策略类、数据路径列表、参数字典，自动运行并返回包含所有绩效指标的 DataFrame。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson" id="lesson-20">
+      <div class="lesson-header" onclick="toggleLesson('lesson-20')">
+        <div class="lesson-num">20</div>
+        <div class="lesson-meta">
+          <div class="lesson-title">接入真实数据与模拟实盘</div>
+          <div class="lesson-phase-tag">第七阶段 · 工程化实践</div>
+        </div>
+        <svg class="lesson-toggle" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="lesson-body">
+        <div class="lesson-grid">
+          <div class="keypoints">
+            <div class="keypoints-title">重点·必须掌握</div>
+            <ul>
+              <li><code>PandasData</code> 接入 tushare/akshare 数据</li>
+              <li><code>IBStore</code> / <code>OandaStore</code> 框架了解实盘接入逻辑</li>
+              <li><code>live=True</code> 模式下的行为变化</li>
+              <li>回测与实盘的关键差异（滑点、延迟、部分成交）</li>
+            </ul>
+          </div>
+          <div class="hw-box">
+            <div class="hw-title">课后作业</div>
+            <div class="hw-text">用 akshare 拉取近 3 年真实 A 股日线数据，对比真实数据和历史 CSV 数据跑同一策略的结果差异，分析原因。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-note">Backtrader 系统学习课程 · 7 阶段 · 20 节课 · 预计 60–80 小时 · 2026</div>
+</footer>
+
+<script>
+  // Toggle lessons
+  function toggleLesson(id) {
+    const lesson = document.getElementById(id);
+    lesson.classList.toggle('open');
+  }
+
+  // Sticky nav dots
+  const phases = document.querySelectorAll('.phase');
+  const nav = document.getElementById('stickyNav');
+  const labels = ['Python基础','核心架构','交易机制','指标系统','分析评估','高级功能','工程实践'];
+
+  phases.forEach((p, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'nav-dot';
+    dot.dataset.label = `第${['一','二','三','四','五','六','七'][i]}阶段·${labels[i]}`;
+    dot.addEventListener('click', () => scrollToPhase(i + 1));
+    nav.appendChild(dot);
+  });
+
+  function scrollToPhase(n) {
+    document.getElementById(`phase-${n}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Active nav dot + progress bar
+  const progressBar = document.getElementById('progressBar');
+  const dots = nav.querySelectorAll('.nav-dot');
+
+  function onScroll() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.body.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = pct + '%';
+
+    let activeIdx = 0;
+    phases.forEach((p, i) => {
+      const rect = p.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.4) activeIdx = i;
+    });
+
+    dots.forEach((d, i) => d.classList.toggle('active', i === activeIdx));
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>
